@@ -1,0 +1,30 @@
+# Planning notes
+docs/plans/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Go build artifacts
+/send
+*.test
+*.out
+coverage.out
+dist/
+bin/
+
+# Dependency and tool caches
+.cache/
+.tmp/
+tmp/
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
