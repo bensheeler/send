@@ -1,5 +1,6 @@
 # Planning notes
 docs/plans/
+CONTEXT.md
 
 # Local environment and secrets
 .env
