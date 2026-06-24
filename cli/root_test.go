@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRootCommandPrintsResolvedRequestFilePath(t *testing.T) {
+func TestRootCommandPrintsParsedRequest(t *testing.T) {
 	cwd := t.TempDir()
 	writeFile(t, cwd, "users.http", "GET http://example.com\n")
 	t.Chdir(cwd)
@@ -22,7 +22,30 @@ func TestRootCommandPrintsResolvedRequestFilePath(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	want := filepath.Join(cwd, "users.http") + "\n"
+	want := "GET http://example.com\n"
+	if stdout.String() != want {
+		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+}
+
+func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T) {
+	cwd := t.TempDir()
+	writeFile(t, cwd, "users.http", "GET http://example.com\n")
+	t.Chdir(cwd)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd := NewRootCommand(stdout, stderr)
+	cmd.SetArgs([]string{"--debug", "users.http"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	want := filepath.Join(cwd, "users.http") + "\nGET http://example.com\n"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 	}

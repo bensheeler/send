@@ -39,6 +39,30 @@ func TestScanRequestFileReturnsScannerErrors(t *testing.T) {
 	}
 }
 
+func TestLoadRequestScansAndParsesRequestFile(t *testing.T) {
+	cwd := t.TempDir()
+	writeFile(t, cwd, "examples/http/single-line.http", "GET https://example.com/users/1\n")
+
+	result, err := LoadRequest(LoadRequestInput{
+		CWD:      cwd,
+		Selector: "single-line",
+	})
+	if err != nil {
+		t.Fatalf("LoadRequest returned error: %v", err)
+	}
+
+	wantPath := filepath.Join(cwd, "examples", "http", "single-line.http")
+	if result.Path != wantPath {
+		t.Fatalf("Path = %q, want %q", result.Path, wantPath)
+	}
+	if result.Method != "GET" {
+		t.Fatalf("Method = %q, want GET", result.Method)
+	}
+	if result.URL != "https://example.com/users/1" {
+		t.Fatalf("URL = %q, want https://example.com/users/1", result.URL)
+	}
+}
+
 func writeFile(t *testing.T, basePath, name, contents string) {
 	t.Helper()
 

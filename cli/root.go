@@ -10,6 +10,8 @@ import (
 )
 
 func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
+	var debug bool
+
 	cmd := &cobra.Command{
 		Use:          "send <request-file>",
 		Short:        "Find and send HTTP requests",
@@ -21,7 +23,7 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 				return err
 			}
 
-			result, err := app.ScanRequestFile(app.ScanRequestFileInput{
+			result, err := app.LoadRequest(app.LoadRequestInput{
 				CWD:      cwd,
 				Selector: args[0],
 			})
@@ -29,10 +31,17 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintln(stdout, result.Path)
+			if debug {
+				_, err = fmt.Fprintln(stdout, result.Path)
+				if err != nil {
+					return err
+				}
+			}
+			_, err = fmt.Fprintf(stdout, "%s %s\n", result.Method, result.URL)
 			return err
 		},
 	}
+	cmd.Flags().BoolVar(&debug, "debug", false, "print debug information")
 	cmd.SetOut(stdout)
 	cmd.SetErr(stderr)
 
