@@ -23,7 +23,7 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 				return err
 			}
 
-			result, err := app.LoadRequest(app.LoadRequestInput{
+			result, err := app.SendRequest(cmd.Context(), app.SendRequestInput{
 				CWD:      cwd,
 				Selector: args[0],
 			})
@@ -36,8 +36,17 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 				if err != nil {
 					return err
 				}
+				_, err = fmt.Fprintf(stdout, "%s %s\n", result.Method, result.URL)
+				if err != nil {
+					return err
+				}
+				_, err = fmt.Fprintf(stdout, "Status: %d\n", result.StatusCode)
+				if err != nil {
+					return err
+				}
 			}
-			_, err = fmt.Fprintf(stdout, "%s %s\n", result.Method, result.URL)
+
+			_, err = stdout.Write(result.Body)
 			return err
 		},
 	}

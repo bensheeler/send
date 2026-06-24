@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"os"
 
 	"github.com/bensheeler/send/core/parser"
+	"github.com/bensheeler/send/core/runner"
 	"github.com/bensheeler/send/core/scanner"
 )
 
@@ -27,6 +29,19 @@ type LoadRequestResult struct {
 	Path   string
 	Method string
 	URL    string
+}
+
+type SendRequestInput struct {
+	CWD      string
+	Selector string
+}
+
+type SendRequestResult struct {
+	Path       string
+	Method     string
+	URL        string
+	StatusCode int
+	Body       []byte
 }
 
 func ScanRequestFile(input ScanRequestFileInput) (ScanRequestFileResult, error) {
@@ -64,5 +79,31 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 		Path:   scanResult.Path,
 		Method: request.Method,
 		URL:    request.URL,
+	}, nil
+}
+
+func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult, error) {
+	request, err := LoadRequest(LoadRequestInput{
+		CWD:      input.CWD,
+		Selector: input.Selector,
+	})
+	if err != nil {
+		return SendRequestResult{}, err
+	}
+
+	response, err := runner.Run(ctx, nil, runner.Request{
+		Method: request.Method,
+		URL:    request.URL,
+	})
+	if err != nil {
+		return SendRequestResult{}, err
+	}
+
+	return SendRequestResult{
+		Path:       request.Path,
+		Method:     request.Method,
+		URL:        request.URL,
+		StatusCode: response.StatusCode,
+		Body:       response.Body,
 	}, nil
 }

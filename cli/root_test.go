@@ -2,6 +2,8 @@ package cli
 
 import (
 	"bytes"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,8 +11,13 @@ import (
 )
 
 func TestRootCommandPrintsParsedRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("response body"))
+	}))
+	t.Cleanup(server.Close)
+
 	cwd := t.TempDir()
-	writeFile(t, cwd, "users.http", "GET http://example.com\n")
+	writeFile(t, cwd, "users.http", "GET "+server.URL+"\n")
 	t.Chdir(cwd)
 
 	stdout := &bytes.Buffer{}
@@ -22,7 +29,7 @@ func TestRootCommandPrintsParsedRequest(t *testing.T) {
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	want := "GET http://example.com\n"
+	want := "response body"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 	}
@@ -32,8 +39,13 @@ func TestRootCommandPrintsParsedRequest(t *testing.T) {
 }
 
 func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("debug body"))
+	}))
+	t.Cleanup(server.Close)
+
 	cwd := t.TempDir()
-	writeFile(t, cwd, "users.http", "GET http://example.com\n")
+	writeFile(t, cwd, "users.http", "GET "+server.URL+"\n")
 	t.Chdir(cwd)
 
 	stdout := &bytes.Buffer{}
@@ -45,7 +57,7 @@ func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T)
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	want := filepath.Join(cwd, "users.http") + "\nGET http://example.com\n"
+	want := filepath.Join(cwd, "users.http") + "\nGET " + server.URL + "\nStatus: 200\ndebug body"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 	}
