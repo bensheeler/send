@@ -1,14 +1,22 @@
 package runner
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
 )
 
+type Header struct {
+	Name  string
+	Value string
+}
+
 type Request struct {
-	Method string
-	URL    string
+	Method  string
+	URL     string
+	Headers []Header
+	Body    []byte
 }
 
 type Response struct {
@@ -21,9 +29,17 @@ func Run(ctx context.Context, client *http.Client, request Request) (Response, e
 		client = http.DefaultClient
 	}
 
-	httpRequest, err := http.NewRequestWithContext(ctx, request.Method, request.URL, nil)
+	var requestBody io.Reader
+	if len(request.Body) > 0 {
+		requestBody = bytes.NewReader(request.Body)
+	}
+
+	httpRequest, err := http.NewRequestWithContext(ctx, request.Method, request.URL, requestBody)
 	if err != nil {
 		return Response{}, err
+	}
+	for _, header := range request.Headers {
+		httpRequest.Header.Add(header.Name, header.Value)
 	}
 
 	httpResponse, err := client.Do(httpRequest)

@@ -30,6 +30,46 @@ func TestParseRequestsNormalizesMethodToUppercase(t *testing.T) {
 	}
 }
 
+func TestParseRequestsParsesHeadersAfterRequestLine(t *testing.T) {
+	requests, err := ParseRequests([]byte("GET https://example.com/users\nAuthorization: Bearer token\nAccept: application/json\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests[0].Headers) != 2 {
+		t.Fatalf("len(Headers) = %d, want 2", len(requests[0].Headers))
+	}
+	if requests[0].Headers[0].Name != "Authorization" || requests[0].Headers[0].Value != "Bearer token" {
+		t.Fatalf("Headers[0] = %#v, want Authorization: Bearer token", requests[0].Headers[0])
+	}
+	if requests[0].Headers[1].Name != "Accept" || requests[0].Headers[1].Value != "application/json" {
+		t.Fatalf("Headers[1] = %#v, want Accept: application/json", requests[0].Headers[1])
+	}
+}
+
+func TestParseRequestsParsesRawBodyAfterHeaders(t *testing.T) {
+	requests, err := ParseRequests([]byte("POST https://example.com/users\nContent-Type: application/json\n\n{\"name\":\"Ada\"}\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests) != 1 {
+		t.Fatalf("len(requests) = %d, want 1", len(requests))
+	}
+	if requests[0].Method != "POST" {
+		t.Fatalf("Method = %q, want POST", requests[0].Method)
+	}
+	if len(requests[0].Headers) != 1 {
+		t.Fatalf("len(Headers) = %d, want 1", len(requests[0].Headers))
+	}
+	if requests[0].Headers[0].Name != "Content-Type" || requests[0].Headers[0].Value != "application/json" {
+		t.Fatalf("Headers[0] = %#v, want Content-Type: application/json", requests[0].Headers[0])
+	}
+	if string(requests[0].Body) != "{\"name\":\"Ada\"}" {
+		t.Fatalf("Body = %q, want raw JSON body", requests[0].Body)
+	}
+}
+
 func TestParseRequestsRejectsUnsupportedMethod(t *testing.T) {
 	_, err := ParseRequests([]byte("TRACE https://example.com/users\n"))
 	if err == nil {
@@ -55,6 +95,13 @@ func TestParseRequestsRejectsMalformedRequestLine(t *testing.T) {
 				t.Fatal("ParseRequests error = nil, want error")
 			}
 		})
+	}
+}
+
+func TestParseRequestsRejectsMalformedHeaderLine(t *testing.T) {
+	_, err := ParseRequests([]byte("GET https://example.com/users\nAuthorization Bearer token\n"))
+	if err == nil {
+		t.Fatal("ParseRequests error = nil, want error")
 	}
 }
 

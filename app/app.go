@@ -25,10 +25,17 @@ type LoadRequestInput struct {
 	Selector string
 }
 
+type Header struct {
+	Name  string
+	Value string
+}
+
 type LoadRequestResult struct {
-	Path   string
-	Method string
-	URL    string
+	Path    string
+	Method  string
+	URL     string
+	Headers []Header
+	Body    []byte
 }
 
 type SendRequestInput struct {
@@ -40,6 +47,7 @@ type SendRequestResult struct {
 	Path       string
 	Method     string
 	URL        string
+	Headers    []Header
 	StatusCode int
 	Body       []byte
 }
@@ -75,10 +83,17 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 	}
 
 	request := requests[0]
+	headers := make([]Header, 0, len(request.Headers))
+	for _, header := range request.Headers {
+		headers = append(headers, Header{Name: header.Name, Value: header.Value})
+	}
+
 	return LoadRequestResult{
-		Path:   scanResult.Path,
-		Method: request.Method,
-		URL:    request.URL,
+		Path:    scanResult.Path,
+		Method:  request.Method,
+		URL:     request.URL,
+		Headers: headers,
+		Body:    request.Body,
 	}, nil
 }
 
@@ -91,9 +106,16 @@ func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult
 		return SendRequestResult{}, err
 	}
 
+	headers := make([]runner.Header, 0, len(request.Headers))
+	for _, header := range request.Headers {
+		headers = append(headers, runner.Header{Name: header.Name, Value: header.Value})
+	}
+
 	response, err := runner.Run(ctx, nil, runner.Request{
-		Method: request.Method,
-		URL:    request.URL,
+		Method:  request.Method,
+		URL:     request.URL,
+		Headers: headers,
+		Body:    request.Body,
 	})
 	if err != nil {
 		return SendRequestResult{}, err
@@ -103,6 +125,7 @@ func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult
 		Path:       request.Path,
 		Method:     request.Method,
 		URL:        request.URL,
+		Headers:    request.Headers,
 		StatusCode: response.StatusCode,
 		Body:       response.Body,
 	}, nil

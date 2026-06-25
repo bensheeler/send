@@ -40,6 +40,12 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 				if err != nil {
 					return err
 				}
+				for _, header := range result.Headers {
+					_, err = fmt.Fprintf(stdout, "%s: %s\n", header.Name, header.Value)
+					if err != nil {
+						return err
+					}
+				}
 				_, err = fmt.Fprintf(stdout, "Status: %d\n", result.StatusCode)
 				if err != nil {
 					return err

@@ -45,7 +45,7 @@ func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T)
 	t.Cleanup(server.Close)
 
 	cwd := t.TempDir()
-	writeFile(t, cwd, "users.http", "GET "+server.URL+"\n")
+	writeFile(t, cwd, "users.http", "GET "+server.URL+"\nAccept: application/json\n")
 	t.Chdir(cwd)
 
 	stdout := &bytes.Buffer{}
@@ -57,7 +57,7 @@ func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T)
 		t.Fatalf("Execute() error = %v", err)
 	}
 
-	want := filepath.Join(cwd, "users.http") + "\nGET " + server.URL + "\nStatus: 200\ndebug body"
+	want := filepath.Join(cwd, "users.http") + "\nGET " + server.URL + "\nAccept: application/json\nStatus: 200\ndebug body"
 	if stdout.String() != want {
 		t.Fatalf("stdout = %q, want %q", stdout.String(), want)
 	}
