@@ -2,9 +2,15 @@ package parser
 
 import "strings"
 
+type Header struct {
+	Name  string
+	Value string
+}
+
 type Request struct {
-	Method string
-	URL    string
+	Method  string
+	URL     string
+	Headers []Header
 }
 
 type ParseError struct {
@@ -16,7 +22,8 @@ func (e *ParseError) Error() string {
 }
 
 func ParseRequests(contents []byte) ([]Request, error) {
-	line, ok := firstRequestLine(contents)
+	lines := strings.Split(string(contents), "\n")
+	line, requestLineIndex, ok := firstRequestLine(lines)
 	if !ok {
 		return nil, &ParseError{Message: "request line not found"}
 	}
@@ -30,18 +37,44 @@ func ParseRequests(contents []byte) ([]Request, error) {
 	if !isSupportedMethod(method) {
 		return nil, &ParseError{Message: "unsupported HTTP method"}
 	}
-	return []Request{{Method: method, URL: parts[1]}}, nil
+
+	headers, err := parseHeaders(lines[requestLineIndex+1:])
+	if err != nil {
+		return nil, err
+	}
+
+	return []Request{{Method: method, URL: parts[1], Headers: headers}}, nil
 }
 
-func firstRequestLine(contents []byte) (string, bool) {
-	for _, line := range strings.Split(string(contents), "\n") {
+func firstRequestLine(lines []string) (string, int, bool) {
+	for index, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || isCommentLine(trimmed) {
 			continue
 		}
-		return trimmed, true
+		return trimmed, index, true
 	}
-	return "", false
+	return "", 0, false
+}
+
+func parseHeaders(lines []string) ([]Header, error) {
+	var headers []Header
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			break
+		}
+
+		name, value, ok := strings.Cut(line, ":")
+		if !ok || strings.TrimSpace(name) == "" {
+			return nil, &ParseError{Message: "malformed header line"}
+		}
+		headers = append(headers, Header{
+			Name:  strings.TrimSpace(name),
+			Value: strings.TrimSpace(value),
+		})
+	}
+	return headers, nil
 }
 
 func isCommentLine(line string) bool {

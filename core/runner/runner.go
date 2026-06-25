@@ -6,9 +6,15 @@ import (
 	"net/http"
 )
 
+type Header struct {
+	Name  string
+	Value string
+}
+
 type Request struct {
-	Method string
-	URL    string
+	Method  string
+	URL     string
+	Headers []Header
 }
 
 type Response struct {
@@ -24,6 +30,9 @@ func Run(ctx context.Context, client *http.Client, request Request) (Response, e
 	httpRequest, err := http.NewRequestWithContext(ctx, request.Method, request.URL, nil)
 	if err != nil {
 		return Response{}, err
+	}
+	for _, header := range request.Headers {
+		httpRequest.Header.Add(header.Name, header.Value)
 	}
 
 	httpResponse, err := client.Do(httpRequest)

@@ -51,6 +51,32 @@ func TestRunUsesRequestMethod(t *testing.T) {
 	}
 }
 
+func TestRunSendsRequestHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Values("X-Trace"); len(got) != 2 || got[0] != "one" || got[1] != "two" {
+			t.Fatalf("X-Trace values = %#v, want [one two]", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer token" {
+			t.Fatalf("Authorization = %q, want Bearer token", got)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := Run(context.Background(), server.Client(), Request{
+		Method: http.MethodGet,
+		URL:    server.URL,
+		Headers: []Header{
+			{Name: "X-Trace", Value: "one"},
+			{Name: "X-Trace", Value: "two"},
+			{Name: "Authorization", Value: "Bearer token"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+}
+
 func TestRunReturnsNon2xxStatusAndBodyWithoutError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
