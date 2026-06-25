@@ -35,6 +35,7 @@ type LoadRequestResult struct {
 	Method  string
 	URL     string
 	Headers []Header
+	Body    []byte
 }
 
 type SendRequestInput struct {
@@ -92,6 +93,7 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 		Method:  request.Method,
 		URL:     request.URL,
 		Headers: headers,
+		Body:    request.Body,
 	}, nil
 }
 
@@ -113,6 +115,7 @@ func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult
 		Method:  request.Method,
 		URL:     request.URL,
 		Headers: headers,
+		Body:    request.Body,
 	})
 	if err != nil {
 		return SendRequestResult{}, err

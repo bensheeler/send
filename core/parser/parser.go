@@ -11,6 +11,7 @@ type Request struct {
 	Method  string
 	URL     string
 	Headers []Header
+	Body    []byte
 }
 
 type ParseError struct {
@@ -38,12 +39,12 @@ func ParseRequests(contents []byte) ([]Request, error) {
 		return nil, &ParseError{Message: "unsupported HTTP method"}
 	}
 
-	headers, err := parseHeaders(lines[requestLineIndex+1:])
+	headers, body, err := parseHeadersAndBody(lines[requestLineIndex+1:])
 	if err != nil {
 		return nil, err
 	}
 
-	return []Request{{Method: method, URL: parts[1], Headers: headers}}, nil
+	return []Request{{Method: method, URL: parts[1], Headers: headers, Body: body}}, nil
 }
 
 func firstRequestLine(lines []string) (string, int, bool) {
@@ -57,24 +58,26 @@ func firstRequestLine(lines []string) (string, int, bool) {
 	return "", 0, false
 }
 
-func parseHeaders(lines []string) ([]Header, error) {
+func parseHeadersAndBody(lines []string) ([]Header, []byte, error) {
 	var headers []Header
-	for _, line := range lines {
+	for index, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
-			break
+			body := strings.Join(lines[index+1:], "\n")
+			body = strings.TrimRight(body, "\r\n")
+			return headers, []byte(body), nil
 		}
 
 		name, value, ok := strings.Cut(line, ":")
 		if !ok || strings.TrimSpace(name) == "" {
-			return nil, &ParseError{Message: "malformed header line"}
+			return nil, nil, &ParseError{Message: "malformed header line"}
 		}
 		headers = append(headers, Header{
 			Name:  strings.TrimSpace(name),
 			Value: strings.TrimSpace(value),
 		})
 	}
-	return headers, nil
+	return headers, nil, nil
 }
 
 func isCommentLine(line string) bool {

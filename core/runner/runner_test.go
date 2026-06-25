@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,6 +72,40 @@ func TestRunSendsRequestHeaders(t *testing.T) {
 			{Name: "X-Trace", Value: "two"},
 			{Name: "Authorization", Value: "Bearer token"},
 		},
+	})
+	if err != nil {
+		 t.Fatalf("Run returned error: %v", err)
+	}
+}
+
+func TestRunSendsRequestBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %q, want POST", r.Method)
+		}
+		if got := r.Header.Get("Content-Type"); got != "application/json" {
+			t.Fatalf("Content-Type = %q, want application/json", got)
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll() error = %v", err)
+		}
+		if string(body) != "{\"name\":\"Ada\"}" {
+			t.Fatalf("body = %q, want JSON body", body)
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := Run(context.Background(), server.Client(), Request{
+		Method: http.MethodPost,
+		URL:    server.URL,
+		Headers: []Header{
+			{Name: "Content-Type", Value: "application/json"},
+		},
+		Body: []byte("{\"name\":\"Ada\"}"),
 	})
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)

@@ -47,6 +47,8 @@ The supported request format is:
 METHOD URL
 Header-Name: header value
 Another-Header: another value
+
+raw request body
 ```
 
 The request line must contain exactly two fields: an HTTP method and a URL.
@@ -87,6 +89,21 @@ X-Trace: two
 
 Malformed header lines are rejected. A header line must include `:` and must have a non-empty name.
 
+## Request Bodies
+
+Bodies are optional. Add a blank line after headers, then write the raw body.
+
+```http
+POST https://example.com/users
+Content-Type: application/json
+
+{"name":"Ada"}
+```
+
+Trailing blank lines are trimmed before sending. Internal newlines and indentation are preserved.
+
+Only raw bodies are supported. `send` does not yet support JSON helpers, file includes, multipart forms, variables, or generated content.
+
 ## Request File Selection
 
 Selectors with `.http` or `.rest` extensions are exact relative paths:
@@ -118,7 +135,6 @@ This can match `requests/users.http` or `requests/users.rest`.
 `send` currently supports a small direct execution flow only:
 
 - Only the first request in a request file is parsed and sent.
-- Request bodies are not supported yet.
 - Variables are not resolved yet.
 - Environment selection is not supported yet.
 - Interactive request selection is not supported yet.

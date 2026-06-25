@@ -47,6 +47,29 @@ func TestParseRequestsParsesHeadersAfterRequestLine(t *testing.T) {
 	}
 }
 
+func TestParseRequestsParsesRawBodyAfterHeaders(t *testing.T) {
+	requests, err := ParseRequests([]byte("POST https://example.com/users\nContent-Type: application/json\n\n{\"name\":\"Ada\"}\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests) != 1 {
+		t.Fatalf("len(requests) = %d, want 1", len(requests))
+	}
+	if requests[0].Method != "POST" {
+		t.Fatalf("Method = %q, want POST", requests[0].Method)
+	}
+	if len(requests[0].Headers) != 1 {
+		t.Fatalf("len(Headers) = %d, want 1", len(requests[0].Headers))
+	}
+	if requests[0].Headers[0].Name != "Content-Type" || requests[0].Headers[0].Value != "application/json" {
+		t.Fatalf("Headers[0] = %#v, want Content-Type: application/json", requests[0].Headers[0])
+	}
+	if string(requests[0].Body) != "{\"name\":\"Ada\"}" {
+		t.Fatalf("Body = %q, want raw JSON body", requests[0].Body)
+	}
+}
+
 func TestParseRequestsRejectsUnsupportedMethod(t *testing.T) {
 	_, err := ParseRequests([]byte("TRACE https://example.com/users\n"))
 	if err == nil {
