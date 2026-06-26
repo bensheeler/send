@@ -66,6 +66,36 @@ func TestRootCommandDebugPrintsResolvedRequestFileAndParsedRequest(t *testing.T)
 	}
 }
 
+func TestRootCommandSendsNamedRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %q, want POST", r.Method)
+		}
+		_, _ = w.Write([]byte("created"))
+	}))
+	t.Cleanup(server.Close)
+
+	cwd := t.TempDir()
+	writeFile(t, cwd, "users.http", "GET "+server.URL+"/first\n\n### Create user\nPOST "+server.URL+"/users\n")
+	t.Chdir(cwd)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd := NewRootCommand(stdout, stderr)
+	cmd.SetArgs([]string{"users.http", "Create user"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if stdout.String() != "created" {
+		t.Fatalf("stdout = %q, want created", stdout.String())
+	}
+	if stderr.String() != "" {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+}
+
 func TestRootCommandRequiresRequestFileArgument(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -76,7 +106,7 @@ func TestRootCommandRequiresRequestFileArgument(t *testing.T) {
 	if err == nil {
 		t.Fatal("Execute() error = nil, want argument error")
 	}
-	if !strings.Contains(err.Error(), "accepts 1 arg") {
+	if !strings.Contains(err.Error(), "accepts between 1 and 2 arg") {
 		t.Fatalf("error = %q, want argument error", err.Error())
 	}
 }

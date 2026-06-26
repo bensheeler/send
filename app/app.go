@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/bensheeler/send/core/parser"
@@ -21,8 +22,9 @@ type ScanRequestFileResult struct {
 }
 
 type LoadRequestInput struct {
-	CWD      string
-	Selector string
+	CWD         string
+	Selector    string
+	RequestName string
 }
 
 type Header struct {
@@ -39,8 +41,9 @@ type LoadRequestResult struct {
 }
 
 type SendRequestInput struct {
-	CWD      string
-	Selector string
+	CWD         string
+	Selector    string
+	RequestName string
 }
 
 type SendRequestResult struct {
@@ -51,6 +54,8 @@ type SendRequestResult struct {
 	StatusCode int
 	Body       []byte
 }
+
+var ErrRequestNameNotFound = errors.New("request name not found")
 
 func ScanRequestFile(input ScanRequestFileInput) (ScanRequestFileResult, error) {
 	result, err := scanner.FindRequestFile(input.CWD, input.Selector, scanner.Options{
@@ -83,6 +88,13 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 	}
 
 	request := requests[0]
+	if input.RequestName != "" {
+		var ok bool
+		request, ok = requestByName(requests, input.RequestName)
+		if !ok {
+			return LoadRequestResult{}, ErrRequestNameNotFound
+		}
+	}
 	headers := make([]Header, 0, len(request.Headers))
 	for _, header := range request.Headers {
 		headers = append(headers, Header{Name: header.Name, Value: header.Value})
@@ -97,10 +109,20 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 	}, nil
 }
 
+func requestByName(requests []parser.Request, name string) (parser.Request, bool) {
+	for _, request := range requests {
+		if request.Name == name {
+			return request, true
+		}
+	}
+	return parser.Request{}, false
+}
+
 func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult, error) {
 	request, err := LoadRequest(LoadRequestInput{
-		CWD:      input.CWD,
-		Selector: input.Selector,
+		CWD:         input.CWD,
+		Selector:    input.Selector,
+		RequestName: input.RequestName,
 	})
 	if err != nil {
 		return SendRequestResult{}, err

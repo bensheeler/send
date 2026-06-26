@@ -67,6 +67,42 @@ Methods are normalized to uppercase before sending.
 
 Leading blank lines and leading comment lines are ignored. Comment lines start with `#` or `//`.
 
+## Multiple Requests
+
+Request files can contain multiple requests separated by a line starting with `###`:
+
+```http
+GET https://example.com/users/1
+
+### createUser
+POST https://example.com/users
+Content-Type: application/json
+
+{"name":"Ada"}
+```
+
+Text after `###` names the following request. Request names can also be written with portable `# @name` metadata before the request line:
+
+```http
+### Create user
+# @name createUser
+POST https://example.com/users
+```
+
+When both forms are present, `# @name` is the request name.
+
+By default, `send` sends the first request in a file. To send a named request, pass the request name as the second argument:
+
+```sh
+go run ./cmd/send examples/http/multiple-requests.http createPost
+```
+
+Request names are case-sensitive. Names with spaces, such as separator titles, must be quoted for your shell:
+
+```sh
+go run ./cmd/send examples/http/multiple-requests.http 'Create user'
+```
+
 ## Headers
 
 Headers are optional. Header lines come immediately after the request line and continue until the first blank line or the end of the file.
@@ -106,6 +142,14 @@ Only raw bodies are supported. `send` does not yet support JSON helpers, file in
 
 ## Request File Selection
 
+The command syntax is:
+
+```sh
+go run ./cmd/send <request-file> [request-name]
+```
+
+If `[request-name]` is omitted, `send` sends the first request in the file. If it is present, `send` sends the request whose name exactly matches it.
+
 Selectors with `.http` or `.rest` extensions are exact relative paths:
 
 ```sh
@@ -134,7 +178,6 @@ This can match `requests/users.http` or `requests/users.rest`.
 
 `send` currently supports a small direct execution flow only:
 
-- Only the first request in a request file is parsed and sent.
+- Multiple requests are supported, but interactive request selection is not supported yet.
 - Variables are not resolved yet.
 - Environment selection is not supported yet.
-- Interactive request selection is not supported yet.

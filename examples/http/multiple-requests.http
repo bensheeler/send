@@ -1,0 +1,27 @@
+GET https://jsonplaceholder.typicode.com/users/1
+Accept: application/json
+
+### listPosts
+GET https://jsonplaceholder.typicode.com/posts?userId=1
+Accept: application/json
+
+### Create post title
+# @name createPost
+POST https://jsonplaceholder.typicode.com/posts
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "title": "Trying multiple requests",
+  "body": "This request uses # @name, which overrides the separator title."
+}
+
+### list Posts
+GET https://jsonplaceholder.typicode.com/posts?userId=2
+Accept: application/json
+
+###
+# @name list post
+GET https://jsonplaceholder.typicode.com/posts?userId=2
+Accept: application/json
+

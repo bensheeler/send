@@ -73,6 +73,61 @@ func TestLoadRequestScansAndParsesRequestFile(t *testing.T) {
 	}
 }
 
+func TestLoadRequestReturnsFirstRequestFromMultiRequestFile(t *testing.T) {
+	cwd := t.TempDir()
+	writeFile(t, cwd, "requests/users.http", "GET https://example.com/users/1\n\n### createUser\nPOST https://example.com/users\n")
+
+	result, err := LoadRequest(LoadRequestInput{
+		CWD:      cwd,
+		Selector: "requests/users.http",
+	})
+	if err != nil {
+		t.Fatalf("LoadRequest returned error: %v", err)
+	}
+
+	if result.Method != "GET" {
+		t.Fatalf("Method = %q, want GET", result.Method)
+	}
+	if result.URL != "https://example.com/users/1" {
+		t.Fatalf("URL = %q, want first request URL", result.URL)
+	}
+}
+
+func TestLoadRequestSelectsNamedRequest(t *testing.T) {
+	cwd := t.TempDir()
+	writeFile(t, cwd, "requests/users.http", "GET https://example.com/users/1\n\n### Create user\nPOST https://example.com/users\n")
+
+	result, err := LoadRequest(LoadRequestInput{
+		CWD:         cwd,
+		Selector:    "requests/users.http",
+		RequestName: "Create user",
+	})
+	if err != nil {
+		t.Fatalf("LoadRequest returned error: %v", err)
+	}
+
+	if result.Method != "POST" {
+		t.Fatalf("Method = %q, want POST", result.Method)
+	}
+	if result.URL != "https://example.com/users" {
+		t.Fatalf("URL = %q, want named request URL", result.URL)
+	}
+}
+
+func TestLoadRequestReturnsErrorForMissingRequestName(t *testing.T) {
+	cwd := t.TempDir()
+	writeFile(t, cwd, "requests/users.http", "GET https://example.com/users/1\n\n### createUser\nPOST https://example.com/users\n")
+
+	_, err := LoadRequest(LoadRequestInput{
+		CWD:         cwd,
+		Selector:    "requests/users.http",
+		RequestName: "CreateUser",
+	})
+	if !errors.Is(err, ErrRequestNameNotFound) {
+		t.Fatalf("error = %v, want ErrRequestNameNotFound", err)
+	}
+}
+
 func TestSendRequestLoadsAndRunsRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

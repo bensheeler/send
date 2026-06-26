@@ -13,19 +13,24 @@ func NewRootCommand(stdout, stderr io.Writer) *cobra.Command {
 	var debug bool
 
 	cmd := &cobra.Command{
-		Use:          "send <request-file>",
+		Use:          "send <request-file> [request-name]",
 		Short:        "Find and send HTTP requests",
-		Args:         cobra.ExactArgs(1),
+		Args:         cobra.RangeArgs(1, 2),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cwd, err := os.Getwd()
 			if err != nil {
 				return err
 			}
+			requestName := ""
+			if len(args) == 2 {
+				requestName = args[1]
+			}
 
 			result, err := app.SendRequest(cmd.Context(), app.SendRequestInput{
-				CWD:      cwd,
-				Selector: args[0],
+				CWD:         cwd,
+				Selector:    args[0],
+				RequestName: requestName,
 			})
 			if err != nil {
 				return err

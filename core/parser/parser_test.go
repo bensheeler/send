@@ -70,6 +70,89 @@ func TestParseRequestsParsesRawBodyAfterHeaders(t *testing.T) {
 	}
 }
 
+func TestParseRequestsParsesRequestsSeparatedBySeparatorLine(t *testing.T) {
+	contents := []byte("GET https://example.com/users/1\n\n###\n\nPOST https://example.com/users\nContent-Type: application/json\n\n{\"name\":\"Ada\"}\n")
+
+	requests, err := ParseRequests(contents)
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests) != 2 {
+		t.Fatalf("len(requests) = %d, want 2", len(requests))
+	}
+	if requests[0].Method != "GET" || requests[0].URL != "https://example.com/users/1" {
+		t.Fatalf("requests[0] = %#v, want GET users/1", requests[0])
+	}
+	if requests[1].Method != "POST" || requests[1].URL != "https://example.com/users" {
+		t.Fatalf("requests[1] = %#v, want POST users", requests[1])
+	}
+	if string(requests[1].Body) != "{\"name\":\"Ada\"}" {
+		t.Fatalf("requests[1].Body = %q, want raw JSON body", requests[1].Body)
+	}
+}
+
+func TestParseRequestsUsesSeparatorTitleAsRequestName(t *testing.T) {
+	contents := []byte("### createUser\nPOST https://example.com/users\n")
+
+	requests, err := ParseRequests(contents)
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests) != 1 {
+		t.Fatalf("len(requests) = %d, want 1", len(requests))
+	}
+	if requests[0].Name != "createUser" {
+		t.Fatalf("Name = %q, want createUser", requests[0].Name)
+	}
+}
+
+func TestParseRequestsIgnoresCommentPreambleBeforeFirstSeparator(t *testing.T) {
+	contents := []byte("# Users API\n\n### listUsers\nGET https://example.com/users\n")
+
+	requests, err := ParseRequests(contents)
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if len(requests) != 1 {
+		t.Fatalf("len(requests) = %d, want 1", len(requests))
+	}
+	if requests[0].Name != "listUsers" {
+		t.Fatalf("Name = %q, want listUsers", requests[0].Name)
+	}
+	if requests[0].URL != "https://example.com/users" {
+		t.Fatalf("URL = %q, want users URL", requests[0].URL)
+	}
+}
+
+func TestParseRequestsUsesNameMetadataAsRequestName(t *testing.T) {
+	contents := []byte("# users API\n# @name createUser\nPOST https://example.com/users\n")
+
+	requests, err := ParseRequests(contents)
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].Name != "createUser" {
+		t.Fatalf("Name = %q, want createUser", requests[0].Name)
+	}
+}
+
+func TestParseRequestsIgnoresMetadataThatOnlyPrefixesName(t *testing.T) {
+	contents := []byte("# @namex createUser\n# @namespace users\nPOST https://example.com/users\n")
+
+	requests, err := ParseRequests(contents)
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].Name != "" {
+		t.Fatalf("Name = %q, want empty", requests[0].Name)
+	}
+}
+
 func TestParseRequestsRejectsUnsupportedMethod(t *testing.T) {
 	_, err := ParseRequests([]byte("TRACE https://example.com/users\n"))
 	if err == nil {
