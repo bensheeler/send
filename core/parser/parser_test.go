@@ -30,6 +30,66 @@ func TestParseRequestsNormalizesMethodToUppercase(t *testing.T) {
 	}
 }
 
+func TestParseRequestsParsesHTTP11Version(t *testing.T) {
+	requests, err := ParseRequests([]byte("GET https://example.com HTTP/1.1\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].Method != "GET" {
+		t.Fatalf("Method = %q, want GET", requests[0].Method)
+	}
+	if requests[0].URL != "https://example.com" {
+		t.Fatalf("URL = %q, want https://example.com", requests[0].URL)
+	}
+	if requests[0].HTTPVersion != "HTTP/1.1" {
+		t.Fatalf("HTTPVersion = %q, want HTTP/1.1", requests[0].HTTPVersion)
+	}
+}
+
+func TestParseRequestsParsesHTTP2Version(t *testing.T) {
+	requests, err := ParseRequests([]byte("GET https://example.com HTTP/2\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].HTTPVersion != "HTTP/2" {
+		t.Fatalf("HTTPVersion = %q, want HTTP/2", requests[0].HTTPVersion)
+	}
+}
+
+func TestParseRequestsRejectsUnsupportedHTTPVersion(t *testing.T) {
+	_, err := ParseRequests([]byte("GET https://example.com HTTP/3\n"))
+	if err == nil {
+		t.Fatal("ParseRequests error = nil, want error")
+	}
+}
+
+func TestParseRequestsDefaultsURLOnlyRequestToGet(t *testing.T) {
+	requests, err := ParseRequests([]byte("https://example.com/users\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].Method != "GET" {
+		t.Fatalf("Method = %q, want GET", requests[0].Method)
+	}
+	if requests[0].URL != "https://example.com/users" {
+		t.Fatalf("URL = %q, want https://example.com/users", requests[0].URL)
+	}
+}
+
+func TestParseRequestsSupportsWebDAVMethod(t *testing.T) {
+	requests, err := ParseRequests([]byte("PROPFIND https://example.com/remote.php/dav\n"))
+	if err != nil {
+		t.Fatalf("ParseRequests returned error: %v", err)
+	}
+
+	if requests[0].Method != "PROPFIND" {
+		t.Fatalf("Method = %q, want PROPFIND", requests[0].Method)
+	}
+}
+
 func TestParseRequestsParsesHeadersAfterRequestLine(t *testing.T) {
 	requests, err := ParseRequests([]byte("GET https://example.com/users\nAuthorization: Bearer token\nAccept: application/json\n"))
 	if err != nil {
@@ -154,7 +214,7 @@ func TestParseRequestsIgnoresMetadataThatOnlyPrefixesName(t *testing.T) {
 }
 
 func TestParseRequestsRejectsUnsupportedMethod(t *testing.T) {
-	_, err := ParseRequests([]byte("TRACE https://example.com/users\n"))
+	_, err := ParseRequests([]byte("BREW https://example.com/users\n"))
 	if err == nil {
 		t.Fatal("ParseRequests error = nil, want error")
 	}
@@ -168,7 +228,7 @@ func TestParseRequestsRejectsMalformedRequestLine(t *testing.T) {
 		{name: "empty", contents: ""},
 		{name: "blank only", contents: "\n\t \n"},
 		{name: "missing url", contents: "GET\n"},
-		{name: "extra token", contents: "GET https://example.com HTTP/1.1\n"},
+		{name: "extra token", contents: "GET https://example.com HTTP/1.1 extra\n"},
 	}
 
 	for _, tt := range tests {

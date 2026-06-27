@@ -33,11 +33,12 @@ type Header struct {
 }
 
 type LoadRequestResult struct {
-	Path    string
-	Method  string
-	URL     string
-	Headers []Header
-	Body    []byte
+	Path        string
+	Method      string
+	URL         string
+	HTTPVersion string
+	Headers     []Header
+	Body        []byte
 }
 
 type SendRequestInput struct {
@@ -47,12 +48,13 @@ type SendRequestInput struct {
 }
 
 type SendRequestResult struct {
-	Path       string
-	Method     string
-	URL        string
-	Headers    []Header
-	StatusCode int
-	Body       []byte
+	Path        string
+	Method      string
+	URL         string
+	HTTPVersion string
+	Headers     []Header
+	StatusCode  int
+	Body        []byte
 }
 
 var ErrRequestNameNotFound = errors.New("request name not found")
@@ -101,11 +103,12 @@ func LoadRequest(input LoadRequestInput) (LoadRequestResult, error) {
 	}
 
 	return LoadRequestResult{
-		Path:    scanResult.Path,
-		Method:  request.Method,
-		URL:     request.URL,
-		Headers: headers,
-		Body:    request.Body,
+		Path:        scanResult.Path,
+		Method:      request.Method,
+		URL:         request.URL,
+		HTTPVersion: request.HTTPVersion,
+		Headers:     headers,
+		Body:        request.Body,
 	}, nil
 }
 
@@ -134,21 +137,23 @@ func SendRequest(ctx context.Context, input SendRequestInput) (SendRequestResult
 	}
 
 	response, err := runner.Run(ctx, nil, runner.Request{
-		Method:  request.Method,
-		URL:     request.URL,
-		Headers: headers,
-		Body:    request.Body,
+		Method:      request.Method,
+		URL:         request.URL,
+		HTTPVersion: request.HTTPVersion,
+		Headers:     headers,
+		Body:        request.Body,
 	})
 	if err != nil {
 		return SendRequestResult{}, err
 	}
 
 	return SendRequestResult{
-		Path:       request.Path,
-		Method:     request.Method,
-		URL:        request.URL,
-		Headers:    request.Headers,
-		StatusCode: response.StatusCode,
-		Body:       response.Body,
+		Path:        request.Path,
+		Method:      request.Method,
+		URL:         request.URL,
+		HTTPVersion: request.HTTPVersion,
+		Headers:     request.Headers,
+		StatusCode:  response.StatusCode,
+		Body:        response.Body,
 	}, nil
 }

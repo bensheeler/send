@@ -13,10 +13,11 @@ type Header struct {
 }
 
 type Request struct {
-	Method  string
-	URL     string
-	Headers []Header
-	Body    []byte
+	Method      string
+	URL         string
+	HTTPVersion string
+	Headers     []Header
+	Body        []byte
 }
 
 type Response struct {

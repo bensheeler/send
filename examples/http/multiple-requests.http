@@ -25,3 +25,18 @@ Accept: application/json
 GET https://jsonplaceholder.typicode.com/posts?userId=2
 Accept: application/json
 
+### http11Echo
+GET https://httpbingo.org/anything HTTP/1.1
+Accept: application/json
+
+### urlOnlyGet
+# @name urlOnlyGet
+https://postman-echo.com/get?foo=bar
+
+### http2Echo
+GET https://nghttp2.org/httpbin/anything HTTP/2
+Accept: application/json
+
+### propfindEcho
+PROPFIND https://httpbingo.org/anything
+Accept: application/json

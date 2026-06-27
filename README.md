@@ -44,24 +44,38 @@ Request files use `.http` or `.rest` extensions.
 The supported request format is:
 
 ```http
-METHOD URL
+[METHOD] URL [HTTP-Version]
 Header-Name: header value
 Another-Header: another value
 
 raw request body
 ```
 
-The request line must contain exactly two fields: an HTTP method and a URL.
+The request line contains a URL, an optional HTTP method, and an optional HTTP version. When the method is omitted from a URL-only request line, `send` uses `GET`.
+
+Valid HTTP versions are `HTTP/1.1` and `HTTP/2`. `send` parses and preserves the request-line version, but the current runner does not force the wire protocol; Go's HTTP transport negotiates the actual protocol.
 
 Supported methods:
 
 - `GET`
+- `HEAD`
 - `POST`
 - `PUT`
-- `PATCH`
 - `DELETE`
-- `HEAD`
+- `CONNECT`
+- `PATCH`
 - `OPTIONS`
+- `TRACE`
+- `LOCK`
+- `UNLOCK`
+- `PROPFIND`
+- `PROPPATCH`
+- `COPY`
+- `MOVE`
+- `MKCOL`
+- `MKCALENDAR`
+- `ACL`
+- `SEARCH`
 
 Methods are normalized to uppercase before sending.
 

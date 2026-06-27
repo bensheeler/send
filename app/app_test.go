@@ -45,7 +45,7 @@ func TestScanRequestFileReturnsScannerErrors(t *testing.T) {
 
 func TestLoadRequestScansAndParsesRequestFile(t *testing.T) {
 	cwd := t.TempDir()
-	writeFile(t, cwd, "examples/http/single-line.http", "GET https://example.com/users/1\nAccept: application/json\n")
+	writeFile(t, cwd, "examples/http/single-line.http", "GET https://example.com/users/1 HTTP/1.1\nAccept: application/json\n")
 
 	result, err := LoadRequest(LoadRequestInput{
 		CWD:      cwd,
@@ -64,6 +64,9 @@ func TestLoadRequestScansAndParsesRequestFile(t *testing.T) {
 	}
 	if result.URL != "https://example.com/users/1" {
 		t.Fatalf("URL = %q, want https://example.com/users/1", result.URL)
+	}
+	if result.HTTPVersion != "HTTP/1.1" {
+		t.Fatalf("HTTPVersion = %q, want HTTP/1.1", result.HTTPVersion)
 	}
 	if len(result.Headers) != 1 {
 		t.Fatalf("len(Headers) = %d, want 1", len(result.Headers))
@@ -142,7 +145,7 @@ func TestSendRequestLoadsAndRunsRequest(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	cwd := t.TempDir()
-	writeFile(t, cwd, "requests/users.http", "GET "+server.URL+"\nAuthorization: Bearer token\n")
+	writeFile(t, cwd, "requests/users.http", "GET "+server.URL+" HTTP/1.1\nAuthorization: Bearer token\n")
 
 	result, err := SendRequest(context.Background(), SendRequestInput{
 		CWD:      cwd,
@@ -161,6 +164,9 @@ func TestSendRequestLoadsAndRunsRequest(t *testing.T) {
 	}
 	if result.URL != server.URL {
 		t.Fatalf("URL = %q, want %q", result.URL, server.URL)
+	}
+	if result.HTTPVersion != "HTTP/1.1" {
+		t.Fatalf("HTTPVersion = %q, want HTTP/1.1", result.HTTPVersion)
 	}
 	if len(result.Headers) != 1 {
 		t.Fatalf("len(Headers) = %d, want 1", len(result.Headers))

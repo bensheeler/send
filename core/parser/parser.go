@@ -8,11 +8,12 @@ type Header struct {
 }
 
 type Request struct {
-	Name    string
-	Method  string
-	URL     string
-	Headers []Header
-	Body    []byte
+	Name        string
+	Method      string
+	URL         string
+	HTTPVersion string
+	Headers     []Header
+	Body        []byte
 }
 
 type requestBlock struct {
@@ -54,14 +55,15 @@ func parseRequestBlock(name string, lines []string) (Request, error) {
 		name = metadataName
 	}
 
-	parts := strings.Fields(line)
-	if len(parts) != 2 {
+	method, url, httpVersion, ok := parseRequestLine(line)
+	if !ok {
 		return Request{}, &ParseError{Message: "malformed request line"}
 	}
-
-	method := strings.ToUpper(parts[0])
 	if !isSupportedMethod(method) {
 		return Request{}, &ParseError{Message: "unsupported HTTP method"}
+	}
+	if httpVersion != "" && !isSupportedHTTPVersion(httpVersion) {
+		return Request{}, &ParseError{Message: "unsupported HTTP version"}
 	}
 
 	headers, body, err := parseHeadersAndBody(lines[requestLineIndex+1:])
@@ -69,7 +71,29 @@ func parseRequestBlock(name string, lines []string) (Request, error) {
 		return Request{}, err
 	}
 
-	return Request{Name: name, Method: method, URL: parts[1], Headers: headers, Body: body}, nil
+	return Request{Name: name, Method: method, URL: url, HTTPVersion: httpVersion, Headers: headers, Body: body}, nil
+}
+
+func parseRequestLine(line string) (string, string, string, bool) {
+	parts := strings.Fields(line)
+	switch len(parts) {
+	case 1:
+		if !isURLOnlyRequestLine(parts[0]) {
+			return "", "", "", false
+		}
+		return "GET", parts[0], "", true
+	case 2:
+		return strings.ToUpper(parts[0]), parts[1], "", true
+	case 3:
+		return strings.ToUpper(parts[0]), parts[1], parts[2], true
+	default:
+		return "", "", "", false
+	}
+}
+
+func isURLOnlyRequestLine(line string) bool {
+	lower := strings.ToLower(line)
+	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
 }
 
 func splitRequestBlocks(lines []string) []requestBlock {
@@ -182,7 +206,17 @@ func separatorHashCount(line string) int {
 
 func isSupportedMethod(method string) bool {
 	switch method {
-	case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS":
+	case "GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "PATCH", "OPTIONS", "TRACE",
+		"LOCK", "UNLOCK", "PROPFIND", "PROPPATCH", "COPY", "MOVE", "MKCOL", "MKCALENDAR", "ACL", "SEARCH":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSupportedHTTPVersion(version string) bool {
+	switch version {
+	case "HTTP/1.1", "HTTP/2":
 		return true
 	default:
 		return false

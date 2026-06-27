@@ -34,6 +34,25 @@ func TestRunSendsRequestAndReturnsResponse(t *testing.T) {
 	}
 }
 
+func TestRunAcceptsHTTPVersionMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %q, want GET", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := Run(context.Background(), server.Client(), Request{
+		Method:      http.MethodGet,
+		URL:         server.URL,
+		HTTPVersion: "HTTP/1.1",
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+}
+
 func TestRunUsesRequestMethod(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -74,7 +93,7 @@ func TestRunSendsRequestHeaders(t *testing.T) {
 		},
 	})
 	if err != nil {
-		 t.Fatalf("Run returned error: %v", err)
+		t.Fatalf("Run returned error: %v", err)
 	}
 }
 
